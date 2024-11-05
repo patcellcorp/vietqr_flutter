@@ -22,17 +22,16 @@ final class VietQR {
 
   static VietQR get instance {
     if (_instance == null) {
-      throw Exception('VietQR instance has not been initialized. Make sure you call VietQR.initialize(clientID, secretKey, webhook?) in main function before runApp.');
+      throw Exception('VietQR instance has not been initialized. Make sure you call VietQR.initialize(clientID, bankCode, bankAccount, webhook?) in main function before runApp.');
     } else {
       return _instance!;
     }
   }
 
-  VietQR._(this.clientID, this.bankCode, this.bankName, this.bankAccount, this.webhook);
+  VietQR._(this.clientID, this.bankCode, this.bankAccount, this.webhook);
 
   final String clientID;
   final String bankCode;
-  final String bankName;
   final String bankAccount;
   final String? webhook;
 
@@ -48,11 +47,11 @@ final class VietQR {
     }
   }
 
-  static void initialize(String clientID, String bankCode, String bankName, String bankAccount, [String? webhook]) {
+  static void initialize(String clientID, String bankCode, String bankAccount, [String? webhook]) {
     if (_instance == null) {
-      _instance = VietQR._(clientID, bankCode, bankName, bankAccount, webhook);
+      _instance = VietQR._(clientID, bankCode, bankAccount, webhook);
     } else {
-      throw Exception('VietQR instance has already been initialized with a clientID and secretKey.');
+      throw Exception('VietQR instance has already been initialized with a clientID.');
     }
   }
 
@@ -242,6 +241,8 @@ enum VietQRGeneratingResponseStatus {
   success, failure, userCancelled,
 }
 
+/// The [qrCode] is a base64 encrypted String. In case you're directly accessing it, for example, invoke the [VietQR.instance].fetchQR
+/// method, make sure you correctly decode it and use [Image.memory] to display the image on your app UI.
 final class VietQRGeneratingSuccessResponseBody {
 
   VietQRGeneratingSuccessResponseBody._({
