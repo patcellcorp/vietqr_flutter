@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 /// Make sure you always initialize the VietQR instance before invoking anything else.
 /// ```
 /// void main() {
-///   VietQR.initialize(clientID, bankCode, bankName, bankAccount, webhook);
+///   VietQR.initialize(clientID, bankCode, bankAccount, webhook);
 ///   runApp(myApp());
 /// }
 /// ```

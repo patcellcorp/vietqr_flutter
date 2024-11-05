@@ -14,7 +14,7 @@ To be added later, after this package is published to https://pub.dev
 **3. Initialize the VietQR object in the *main* function before runApp**
 ```dart
 void main() {
-    VietQR.initialize(clientID, secretKey, bankCode, bankName, bankAccount, userBankName, webhook);
+    VietQR.initialize(clientID, bankCode, bankAccount, webhook);
     runApp(MyApp())
 }
 ```
