@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 /// Make sure you always initialize the VietQR instance before invoking anything else.
 /// ```
 /// void main() {
-///   VietQR.initialize(clientID, secretKey, bankCode, bankName, bankAccount, userBankName, webhook);
+///   VietQR.initialize(clientID, bankCode, bankName, bankAccount, webhook);
 ///   runApp(myApp());
 /// }
 /// ```
@@ -28,19 +28,29 @@ final class VietQR {
     }
   }
 
-  VietQR._(this.clientID, this.secretKey, this.bankCode, this.bankName, this.bankAccount, this.userBankName, this.webhook);
+  VietQR._(this.clientID, this.bankCode, this.bankName, this.bankAccount, this.webhook);
 
   final String clientID;
-  final String secretKey;
   final String bankCode;
   final String bankName;
   final String bankAccount;
-  final String userBankName;
   final String? webhook;
 
-  static void initialize(String clientID, String secretKey, String bankCode, String bankName, String bankAccount, String userBankName, [String? webhook]) {
+  String? _userBankName;
+
+  String? get userBankName => _userBankName;
+
+  void setUserBankName(String userBankName) {
+    if (_userBankName == null) {
+      _userBankName = userBankName;
+    } else {
+      throw Exception('You can only assign one global userBankName.');
+    }
+  }
+
+  static void initialize(String clientID, String bankCode, String bankName, String bankAccount, [String? webhook]) {
     if (_instance == null) {
-      _instance = VietQR._(clientID, secretKey, bankCode, bankName, bankAccount, userBankName, webhook);
+      _instance = VietQR._(clientID, bankCode, bankName, bankAccount, webhook);
     } else {
       throw Exception('VietQR instance has already been initialized with a clientID and secretKey.');
     }
@@ -49,6 +59,7 @@ final class VietQR {
   static final Uri _kVietQrUrl = Uri.https('dev.vietqr.org','/vqr/qr-lib/active/request');
 
   // Fetch QR image for every transaction. This is handy when you only need to fetch the QR. For example, you build your own custom UI.
+  // There's a [webhook] which is convenient in case you need to use a different webhook for this single transaction.
   Future<VietQRGeneratingResponse> fetchQR({
     required String content,
     required int amount,
@@ -56,14 +67,13 @@ final class VietQR {
     String? webhook
   }) async {
     if (webhook == null && this.webhook == null) {
-      throw Exception('A webhook must be supplied. Either from VietQR.initialize(clientID, webhook) or fetchQR(content, amount, orderId, webhook?)');
+      throw Exception('A webhook must be supplied. Either from VietQR.initialize(clientID, bankCode, bankName, bankAccount, webhook?) or fetchQR(content, amount, orderId, webhook?)');
     }
     final response = await http.post(
       _kVietQrUrl,
       headers: {
         'Content-Type': 'application/json',
         'clientId': clientID,
-        'secretKey': secretKey,
       },
       body: {
         'bankCode': bankCode,
@@ -134,13 +144,13 @@ final class VietQR {
                               Expanded(child: FilledButton(onPressed: () async {
                                 final saveResult = await EasyFileSaver().saveImageToGalleryFromBase64(snapshot.data!.successBody!.qrCode, orderId);
                                 if (saveResult == 'OK') {
-                                  navigator.pop(snapshot.data!.successBody);
+                                  navigator.pop(snapshot.data!);
                                 } else {
                                   print('Cannot save the image to Device ${defaultTargetPlatform == TargetPlatform.android ? 'Gallery' : 'Photos'}');
                                 }
                               }, child: const Text('Lưu'),),),
                               const SizedBox(width: 40,),
-                              Expanded(child: OutlinedButton(onPressed: () => navigator.pop(), child: const Text('Hủy'),),),
+                              Expanded(child: OutlinedButton(onPressed: () => navigator.pop(VietQRGeneratingResponse._(status: VietQRGeneratingResponseStatus.userCancelled)), child: const Text('Hủy'),),),
                             ],
                           ),
                         ]
@@ -171,9 +181,9 @@ final class VietQRButton extends StatelessWidget {
     required this.content,
     required this.amount,
     required this.orderId,
-    required this.webhook,
     required this.conditionalHook,
-    required this.callback
+    required this.callback,
+    this.webhook,
   });
 
   final int amount;
@@ -186,7 +196,7 @@ final class VietQRButton extends StatelessWidget {
   // For example, you'll need to send the [orderId] to your server.
   final Future<bool> Function() conditionalHook;
 
-  // The callback to be fired. If the [condition] above returns false, the QR sheet/dialog won't be shown.
+  // The callback to be fired. If the [conditionalHook] above returns false, the QR sheet/dialog won't be shown.
   // And the VietQRGeneratingResponse param in the callback will be null.
   // See [VietQRGeneratingResponse] below for more info.
   final Function(VietQRGeneratingResponse?) callback;
@@ -209,6 +219,11 @@ final class VietQRButton extends StatelessWidget {
   }
 }
 
+/// The response of whether a VietQR is generated.
+/// If the [status] is .success, the [successBody] will be accessible to unwrap and extract the data. See [VietQRGeneratingSuccessResponseBody] for more details.
+/// If the [status] is .failure, the [failureBody] will be accessible to show the error message. See [VietQRGeneratingFailureResponseBody] for more details.
+/// If the [status] is .userCancelled, both the [successBody] and [failureBody] will be null.
+/// See [VietQRGeneratingResponseStatus] below for more info.
 final class VietQRGeneratingResponse {
 
   VietQRGeneratingResponse._({required this.status, this.successBody, this.failureBody});
@@ -219,8 +234,12 @@ final class VietQRGeneratingResponse {
 
 }
 
+/// The status indicates whether the VietQR is generated successfully.
+/// [success] means a valid VietQR has been obtained. See [VietQRGeneratingSuccessResponseBody] for more details.
+/// [failure] means something went wrong with an error message. See [VietQRGeneratingFailureResponseBody] for more details.
+/// [userCancelled] means user cancelled the operation.
 enum VietQRGeneratingResponseStatus {
-  success, failure, userCancelled, conditionFailed,
+  success, failure, userCancelled,
 }
 
 final class VietQRGeneratingSuccessResponseBody {
