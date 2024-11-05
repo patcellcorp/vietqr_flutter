@@ -22,7 +22,7 @@ final class VietQR {
 
   static VietQR get instance {
     if (_instance == null) {
-      throw Exception('VietQR instance has not been initialized. Make sure you call VietQr.initialize(clientID, secretKey, webhook?) in main function before runApp.');
+      throw Exception('VietQR instance has not been initialized. Make sure you call VietQR.initialize(clientID, secretKey, webhook?) in main function before runApp.');
     } else {
       return _instance!;
     }
